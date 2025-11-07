@@ -38,10 +38,15 @@ namespace AsconSendNotice
                 SqlCommand cmd = connection.CreateCommand();
                 cmd.CommandText = "SELECT * FROM [Гражданская_продукция].[dbo].[Notice] where TaskStatus = 1";
                 SqlDataReader reader = await cmd.ExecuteReaderAsync(cancellation);
+                string? userName = reader["UserName"].ToString()?.Remove(0, 4);
+                string? textMessage = reader["TextNotice"].ToString();
+                string? idRoute = reader["IdRoute"].ToString();
+                string? idTask = reader["IdTask"].ToString();
                 while (await reader.ReadAsync(cancellation))
                 {
-                    var response = await SendNotice(reader["UserName"].ToString()?.Remove(0, 4), reader["TextNotice"].ToString(), cancellation);
-                    await UpdateTaskStatus(reader["IdRoute"].ToString(), reader["IdTask"].ToString(), reader["UserName"].ToString(), "2", cancellation, $"'{response.saveArray[0].id}'");
+                    var response = await SendNotice(userName, textMessage, cancellation);
+                    var idNotice = $"'{response.saveArray[0].id}'";
+                    await UpdateTaskStatus(idRoute, idTask, userName, "2", cancellation, idNotice);
                 }
                 await connection.CloseAsync();
             }
@@ -57,12 +62,17 @@ namespace AsconSendNotice
                 SqlCommand cmd = connection.CreateCommand();
                 cmd.CommandText = "SELECT * FROM [Гражданская_продукция].[dbo].[Notice] where (TaskStatus = 2) AND (GETDATE()-[Notice].date > '03:59:59')";
                 SqlDataReader reader = await cmd.ExecuteReaderAsync(cancellation);
+                string? userName = reader["UserName"].ToString()?.Remove(0, 4);
+                string? textMessage = $"<b>{reader["TextNotice"].ToString()}</b>";
+                string? idRoute = reader["IdRoute"].ToString();
+                string? idTask = reader["IdTask"].ToString();
+                string? idNotice = reader["IdNotice"].ToString();
+
                 while (await reader.ReadAsync(cancellation))
                 {
-                    await DeleteNotice(reader["IdNotice"].ToString(), cancellation);
-                    var response = await SendNotice(reader["UserName"].ToString()?.Remove(0, 4), $"<b>{reader["TextNotice"].ToString()}</b>", cancellation);
-                    await UpdateTaskStatus(reader["IdRoute"].ToString(), reader["IdTask"].ToString(), reader["UserName"].ToString(), "21", cancellation, $"'{response.saveArray[0].id}'"
-                        );
+                    await DeleteNotice(idNotice, cancellation);
+                    await SendNotice(userName, textMessage, cancellation);
+                    await UpdateTaskStatus(idRoute, idTask, userName, "3", cancellation, idNotice);
                 }
                 await connection.CloseAsync();
             }
@@ -72,11 +82,16 @@ namespace AsconSendNotice
                 SqlCommand cmd = connection.CreateCommand();
                 cmd.CommandText = "SELECT * FROM [Гражданская_продукция].[dbo].[Notice] where (TaskStatus = 4) AND (GETDATE()-[Notice].date > '23:59:59')";
                 SqlDataReader reader = await cmd.ExecuteReaderAsync(cancellation);
+                string? userName = reader["UserName"].ToString()?.Remove(0, 4);
+                string? textMessage = $"<b>Задание *{reader["TextNotice"].ToString()}* находится у Вас в работе более одного дня. Необходимо завершить задание.</b>";
+                string? idRoute = reader["IdRoute"].ToString();
+                string? idTask = reader["IdTask"].ToString();
+                string? idNotice = reader["IdNotice"].ToString();
                 while (await reader.ReadAsync(cancellation))
                 {
-                    await DeleteNotice(reader["IdNotice"].ToString(), cancellation);
-                    var response = await SendNotice(reader["UserName"].ToString()?.Remove(0, 4), $"<b>Задание *{reader["TextNotice"].ToString()}* находится у Вас в работе более одного дня. Необходимо завершить задание.</b>", cancellation);
-                    await UpdateTaskStatus(reader["IdRoute"].ToString(), reader["IdTask"].ToString(), reader["UserName"].ToString(), "5", cancellation, $"'{response.saveArray[0].id}'");
+                    await DeleteNotice(idNotice, cancellation);
+                    await SendNotice(userName, textMessage, cancellation);
+                    await UpdateTaskStatus(idRoute, idTask, userName, "5", cancellation, idNotice);
                 }
                 await connection.CloseAsync();
             }
@@ -92,13 +107,18 @@ namespace AsconSendNotice
                 SqlCommand cmd = connection.CreateCommand();
                 cmd.CommandText = "SELECT * FROM [Гражданская_продукция].[dbo].[Notice] where (TaskStatus = 0) AND (TaskStatus = 3)";
                 SqlDataReader reader = await cmd.ExecuteReaderAsync(cancellation);
+                string? userName = reader["UserName"].ToString()?.Remove(0, 4);
+                string? textMessage = reader["TextNotice"].ToString();
+                string? idRoute = reader["IdRoute"].ToString();
+                string? idTask = reader["IdTask"].ToString();
+                string? idNotice = reader["IdNotice"].ToString();
                 while (await reader.ReadAsync(cancellation))
                 {
-                    await DeleteNotice(reader["IdNotice"].ToString(), cancellation);
+                    await DeleteNotice(idNotice, cancellation);
                     if (reader["TaskStatus"].ToString() == "3")
                     {
-                        await UpdateTaskStatus(reader["IdRoute"].ToString(), reader["IdTask"].ToString(), reader["UserName"].ToString(), "4", cancellation: cancellation);
-                        await UpdateTaskDate(reader["IdRoute"].ToString(), reader["IdTask"].ToString(), reader["UserName"].ToString(), cancellation);
+                        await UpdateTaskStatus(idRoute, idTask, userName, "4", cancellation);
+                        await UpdateTaskDate(idRoute, idTask, userName, cancellation);
                     }
                 }
                 await connection.CloseAsync();
